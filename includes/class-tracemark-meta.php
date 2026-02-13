@@ -37,7 +37,20 @@ class TraceMark_Meta
 		// Arquivo PDF
 		$file_path = get_post_meta($post->ID, '_tracemark_pdf_path', true);
 		$filename = $file_path ? basename($file_path) : '';
+
+		// Título Customizado
+		$custom_title = get_post_meta($post->ID, '_tracemark_custom_title', true);
 		?>
+
+		<!-- SEÇÃO DE TÍTULO -->
+		<p><strong><?php _e('Título do Documento (Exibição):', 'tracemark-pdf'); ?></strong></p>
+		<input type="text" name="tracemark_custom_title" value="<?php echo esc_attr($custom_title); ?>" style="width: 100%;"
+			placeholder="<?php _e('Ex: Relatório de Vendas 2026', 'tracemark-pdf'); ?>">
+		<p class="description">
+			<?php _e('Este título substituirá o texto "Documento Restrito" na página do documento.', 'tracemark-pdf'); ?>
+		</p>
+
+		<hr>
 
 		<!-- SEÇÃO DE ARQUIVO -->
 		<p><strong><?php _e('Arquivo PDF:', 'tracemark-pdf'); ?></strong></p>
@@ -69,6 +82,11 @@ class TraceMark_Meta
 
 		if (!current_user_can('edit_post', $post_id)) {
 			return;
+		}
+
+		// Salvar Título Customizado
+		if (isset($_POST['tracemark_custom_title'])) {
+			update_post_meta($post_id, '_tracemark_custom_title', sanitize_text_field($_POST['tracemark_custom_title']));
 		}
 
 		// Diretório Seguro

@@ -103,6 +103,12 @@ class TraceMark_Protection
         $logo_path = get_user_meta($user_id, '_tracemark_user_logo', true);
         $company_name = get_user_meta($user_id, '_tracemark_company_name', true);
 
+        // Título customizado
+        $custom_title = get_post_meta($post_id, '_tracemark_custom_title', true);
+        if (empty($custom_title)) {
+            $custom_title = __('Documento Restrito', 'tracemark-pdf');
+        }
+
         $output = '<div class="tracemark-container" style="border: 1px solid #ddd; padding: 20px; border-radius: 5px; background: #f9f9f9; text-align: center;">';
 
         if ($logo_path && file_exists($logo_path)) {
@@ -116,9 +122,7 @@ class TraceMark_Protection
             $output .= '<h4>' . esc_html($company_name) . '</h4>';
         }
 
-        $output .= '<h3>' . __('Documento Restrito', 'tracemark-pdf') . '</h3>';
-        $output .= '<p><strong>' . __('Representante:', 'tracemark-pdf') . '</strong> ' . esc_html($user->display_name) . '</p>';
-        $output .= '<p><strong>' . __('Email:', 'tracemark-pdf') . '</strong> ' . esc_html($user->user_email) . '</p>';
+        $output .= '<h3>' . esc_html($custom_title) . '</h3>';
 
         $url = add_query_arg('tm_download', '1', get_permalink());
 
