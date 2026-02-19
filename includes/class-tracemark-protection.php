@@ -6,6 +6,8 @@
 class TraceMark_Protection
 {
 
+    private $protected_types = array('boletim_semanal', 'relatorio_pais');
+
     public function __construct()
     {
         add_action('template_redirect', array($this, 'control_access'));
@@ -14,21 +16,22 @@ class TraceMark_Protection
 
     public function control_access()
     {
-        if (!is_singular('restricted_pdf')) {
+        if (!is_singular($this->protected_types)) {
             return;
         }
 
         // 1. Verificar Login
         if (!is_user_logged_in()) {
-            auth_redirect();
+            wp_redirect(home_url('area-restrita'));
+            exit;
         }
 
         $user_id = get_current_user_id();
         $post_id = get_the_ID();
 
         // 2. Verificar Permissões
-        if (!$this->user_has_access($user_id, $post_id)) {
-            wp_die(__('Você não tem permissão para visualizar este documento.', 'tracemark-pdf'), __('Acesso Negado', 'tracemark-pdf'), array('response' => 403));
+        if (!$this->user_has_access($user_id)) {
+            wp_die('Você não tem permissão para visualizar este documento.', 'Acesso Negado', array('response' => 403));
         }
 
         // 3. Lidar com Pedido de Download
@@ -37,7 +40,7 @@ class TraceMark_Protection
         }
     }
 
-    private function user_has_access($user_id, $post_id)
+    private function user_has_access($user_id)
     {
         // Admin sempre tem acesso
         if (user_can($user_id, 'manage_options')) {
@@ -58,7 +61,7 @@ class TraceMark_Protection
         $file_path = get_post_meta($post_id, '_tracemark_pdf_path', true);
 
         if (!$file_path || !file_exists($file_path)) {
-            wp_die(__('Arquivo não encontrado.', 'tracemark-pdf'));
+            wp_die('Arquivo não encontrado.');
         }
 
         // Gerar Marca d'água
@@ -66,7 +69,7 @@ class TraceMark_Protection
         $pdf_content = $watermarker->generate($file_path, $user_id, $post_id);
 
         if (!$pdf_content) {
-            wp_die(__('Erro ao gerar PDF.', 'tracemark-pdf'));
+            wp_die('Erro ao gerar PDF.');
         }
 
         $filename = basename($file_path);
@@ -87,18 +90,18 @@ class TraceMark_Protection
 
     public function append_download_button($content)
     {
-        if (!is_singular('restricted_pdf') || !is_user_logged_in()) {
+        if (!is_singular($this->protected_types) || !is_user_logged_in()) {
             return $content;
         }
 
         $user_id = get_current_user_id();
         $post_id = get_the_ID();
 
-        if (!$this->user_has_access($user_id, $post_id)) {
+        if (!$this->user_has_access($user_id)) {
             return $content;
         }
 
-        // Buscar dados
+        // Buscar dados do usuário
         $user = get_userdata($user_id);
         $logo_path = get_user_meta($user_id, '_tracemark_user_logo', true);
         $company_name = get_user_meta($user_id, '_tracemark_company_name', true);
@@ -106,7 +109,7 @@ class TraceMark_Protection
         // Título customizado
         $custom_title = get_post_meta($post_id, '_tracemark_custom_title', true);
         if (empty($custom_title)) {
-            $custom_title = __('Documento Restrito', 'tracemark-pdf');
+            $custom_title = get_the_title($post_id);
         }
 
         $output = '<div class="tracemark-container" style="border: 1px solid #ddd; padding: 20px; border-radius: 5px; background: #f9f9f9; text-align: center;">';
@@ -126,8 +129,8 @@ class TraceMark_Protection
 
         $url = add_query_arg('tm_download', '1', get_permalink());
 
-        $output .= '<a href="' . esc_url($url) . '" class="button button-primary button-large" style="display:inline-block; padding:10px 20px; background:#0073aa; color:#fff; text-decoration:none; border-radius:4px; margin-top:20px;">';
-        $output .= __('Baixar / Visualizar Documento', 'tracemark-pdf');
+        $output .= '<a href="' . esc_url($url) . '" style="display:inline-block; padding:12px 24px; background:#0073aa; color:#fff; text-decoration:none; border-radius:4px; margin-top:20px; font-weight:bold;">';
+        $output .= 'Baixar / Visualizar Documento';
         $output .= '</a>';
         $output .= '</div>';
 

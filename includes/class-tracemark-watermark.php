@@ -57,6 +57,39 @@ class TraceMark_FPDI extends Fpdi
         $this->_putextgstates();
         parent::_putresources();
     }
+
+    /**
+     * Suporte para Rotação (usado para Marca d'água diagonal)
+     */
+    protected $angle = 0;
+
+    function Rotate($angle, $x = -1, $y = -1)
+    {
+        if ($x == -1)
+            $x = $this->x;
+        if ($y == -1)
+            $y = $this->y;
+        if ($this->angle != 0)
+            $this->_out('Q');
+        $this->angle = $angle;
+        if ($angle != 0) {
+            $angle *= M_PI / 180;
+            $c = cos($angle);
+            $s = sin($angle);
+            $cx = $x * $this->k;
+            $cy = ($this->h - $y) * $this->k;
+            $this->_out(sprintf('q %.5F %.5F %.5F %.5F %.2F %.2F cm 1 0 0 1 %.2F %.2F cm', $c, $s, -$s, $c, $cx, $cy, -$cx, -$cy));
+        }
+    }
+
+    function _endpage()
+    {
+        if ($this->angle != 0) {
+            $this->angle = 0;
+            $this->_out('Q');
+        }
+        parent::_endpage();
+    }
 }
 
 class TraceMark_Watermark
@@ -113,9 +146,9 @@ class TraceMark_Watermark
             // 1. Inserir o conteúdo original primeiro
             $pdf->useTemplate($template_id);
 
-            // 2. Inserir Logo Centralizado com Opacidade (30%)
+            // 2. Inserir Logo Centralizado com Opacidade (15%) - Reduzi de 30% para não atrapalhar
             if ($logo_path && file_exists($logo_path)) {
-                $max_dim = 80;
+                $max_dim = 100;
                 $info = getimagesize($logo_path);
                 if ($info) {
                     $w_px = $info[0];
@@ -136,12 +169,30 @@ class TraceMark_Watermark
                 $x = ($size['width'] - $w) / 2;
                 $y = ($size['height'] - $h) / 2;
 
-                $pdf->SetAlpha(0.3);
+                $pdf->SetAlpha(0.15);
                 $pdf->Image($logo_path, $x, $y, $w, $h);
                 $pdf->SetAlpha(1.0);
             }
 
-            // 3. Marca d'água de rastreabilidade (Rodapé de Todas as Páginas)
+            // 3. Marca d'água de Fundo (Diagonal - Empresa + Email)
+            $pdf->SetFont('Helvetica', 'B', 40);
+            $pdf->SetTextColor(200, 200, 200);
+            $pdf->SetAlpha(0.2); // Muito transparente
+
+            $watermark_text = sprintf("%s\n%s", strtoupper($company), strtolower($email));
+            $watermark_text = iconv('UTF-8', 'ISO-8859-1//TRANSLIT', $watermark_text);
+
+            // Centralizar e Rotacionar
+            $pdf->Rotate(45, $size['width'] / 2, $size['height'] / 2);
+
+            // Usar MultiCell para permitir quebra de linha se for muito longo
+            $pdf->SetXY(($size['width'] / 2) - 100, ($size['height'] / 2) - 20);
+            $pdf->MultiCell(200, 15, $watermark_text, 0, 'C');
+
+            $pdf->Rotate(0); // Resetar rotação
+            $pdf->SetAlpha(1.0);
+
+            // 4. Marca d'água de rastreabilidade (Rodapé de Todas as Páginas)
             $pdf->SetFont('Helvetica', 'I', 8);
             $pdf->SetTextColor(120, 120, 120);
             $text = iconv('UTF-8', 'ISO-8859-1//TRANSLIT', $footer_text);
