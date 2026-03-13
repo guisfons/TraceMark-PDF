@@ -186,7 +186,7 @@ class TraceMark_Watermark
                     $x = ($size['width'] - $w) / 2;
                     $y = ($size['height'] - $h) / 2;
 
-                    $pdf->SetAlpha(0.3);
+                    $pdf->SetAlpha(0.5);
                     $pdf->Image($logo_path, $x, $y, $w, $h);
                     $pdf->SetAlpha(1.0);
                 }
@@ -194,7 +194,7 @@ class TraceMark_Watermark
                 // 3. Marca d'água de Fundo (Diagonal - Empresa + Email)
                 $pdf->SetFont('Helvetica', 'B', 40);
                 $pdf->SetTextColor(200, 200, 200);
-                $pdf->SetAlpha(0.3);
+                $pdf->SetAlpha(0.5);
 
                 $watermark_text = sprintf("%s\n%s", strtoupper($company), strtolower($email));
                 $watermark_text = iconv('UTF-8', 'ISO-8859-1//TRANSLIT', $watermark_text);
